@@ -10,20 +10,23 @@ int GetListPartition(DiskInformation *diskInf) {
 	bResult = GetDriveLayout(pdg);
 	if (bResult) {
 		diskInf->pdg = pdg;
-		printf("\nPartition ###\t\t");
-		printf("Size\t\t");
-		printf("Offset\t\t");
-		printf("Type\t\n");
-		printf("-------------\t\t");
-		printf("-------------\t");
-		printf("-------\t\t");
-		printf("-------\t\n");
 		for (int i = 0; i < (int) diskInf->pdg->PartitionCount; i++) {
-			printf("%d. Partition %d\t", i + 1, diskInf->pdg->PartitionEntry[i].PartitionNumber);
-			if (i < 9) printf ("\t");
-			printf("%.1f MB\t", diskInf->pdg->PartitionEntry[i].PartitionLength.QuadPart / pow(1024.0, 2));
-			printf("%.1f MB\t", diskInf->pdg->PartitionEntry[i].StartingOffset.QuadPart / pow(1024.0, 2));
-			wprintf (L"%s\n", diskInf->pdg->PartitionEntry[i].Gpt.Name);
+			if (diskInf->pdg->PartitionEntry[i].PartitionNumber == i + 1) {
+				printf("%d. Partition %d\t", i + 1, diskInf->pdg->PartitionEntry[i].PartitionNumber);
+				if (i < 9) printf ("\t");
+				if (diskInf->pdg->PartitionEntry[i].PartitionLength.QuadPart == 0 && i != 0) {
+					printf("%.1f MB\t", (diskInf->pdg->PartitionEntry[i + 1].StartingOffset.QuadPart - diskInf->pdg->PartitionEntry[i - 1].PartitionLength.QuadPart) / pow(1024, 2));
+					printf("%.1f MB\t", (diskInf->pdg->PartitionEntry[i - 1].StartingOffset.QuadPart + diskInf->pdg->PartitionEntry[i - 1].PartitionLength.QuadPart) / pow(1024, 2));
+				} else {
+					printf("%.1f MB\t", diskInf->pdg->PartitionEntry[i].PartitionLength.QuadPart / pow(1024, 2));
+					printf("%.1f MB\t", diskInf->pdg->PartitionEntry[i].StartingOffset.QuadPart / pow(1024, 2));
+				}
+				if (diskInf->pdg->PartitionStyle == PARTITION_STYLE_GPT) {
+					wprintf(L"%s\n", diskInf->pdg->PartitionEntry[i].Gpt.Name);
+				} else {
+					printf("%d\n", diskInf->pdg->PartitionEntry[i].Mbr.PartitionType);
+				}
+			}
 		}
 	} else {
 		printf("Error code %d\n", GetLastError());
