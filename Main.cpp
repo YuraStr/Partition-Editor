@@ -2,9 +2,7 @@
 #include "PartitionEditorFunctions.h"
 
 int main() {
-	int choice;
-	int flag = 1;
-	DiskInformation *diskInf;
+	DiskInformation diskInf;
 	
 	GetListPartition(&diskInf);
 

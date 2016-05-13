@@ -7,97 +7,44 @@
 int GetListPartition(DiskInformation *diskInf) {
 	DRIVE_LAYOUT_INFORMATION_EX *pdg = (DRIVE_LAYOUT_INFORMATION_EX*)malloc(sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX));
 	bool bResult;
+	int flag = 1;
 	bResult = GetDriveLayout(pdg);
 	if (bResult) {
 		diskInf->pdg = pdg;
-		for (int i = 0; i < (int) diskInf->pdg->PartitionCount; i++) {
-			if (diskInf->pdg->PartitionEntry[i].PartitionNumber == i + 1) {
-				printf("%d. Partition %d\t", i + 1, diskInf->pdg->PartitionEntry[i].PartitionNumber);
-				if (i < 9) printf ("\t");
-				if (diskInf->pdg->PartitionEntry[i].PartitionLength.QuadPart == 0 && i != 0) {
-					printf("%.1f MB\t", (diskInf->pdg->PartitionEntry[i + 1].StartingOffset.QuadPart - diskInf->pdg->PartitionEntry[i - 1].PartitionLength.QuadPart) / pow(1024, 2));
-					printf("%.1f MB\t", (diskInf->pdg->PartitionEntry[i - 1].StartingOffset.QuadPart + diskInf->pdg->PartitionEntry[i - 1].PartitionLength.QuadPart) / pow(1024, 2));
-				} else {
-					printf("%.1f MB\t", diskInf->pdg->PartitionEntry[i].PartitionLength.QuadPart / pow(1024, 2));
-					printf("%.1f MB\t", diskInf->pdg->PartitionEntry[i].StartingOffset.QuadPart / pow(1024, 2));
-				}
-				if (diskInf->pdg->PartitionStyle == PARTITION_STYLE_GPT) {
-					wprintf(L"%s\n", diskInf->pdg->PartitionEntry[i].Gpt.Name);
-				} else {
-					printf("%d\n", diskInf->pdg->PartitionEntry[i].Mbr.PartitionType);
-				}
+		diskInf->partitionEntry = (PartitionInformation*)malloc(pdg->PartitionCount * sizeof(PartitionInformation));
+		GetPartitionInformation(diskInf);
+		for (int i = 0; i < diskInf->partitionCount; i++) {
+			printf("%d. Partition %d\t", i + 1, diskInf->partitionEntry[i].partitionInformation.PartitionNumber);
+			printf("%d\t", diskInf->pdg->PartitionStyle);
+			if (diskInf->partitionEntry[i].partitionInformation.PartitionStyle == PARTITION_STYLE_RAW) {
+				printf("Empty space\t");
+			} else {
+				printf("%x\t\t", diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType);
+				/*if (diskInf->partitionEntry[i].partitionInformation.PartitionStyle == PARTITION_STYLE_MBR) {
+					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x07)
+						printf("NTFS\t\t");
+					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x05)
+						printf("Extended\t\t");
+					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x0B)
+						printf("FAT32\t\t");
+					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x04)
+						printf("FAT16\t\t");
+					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x01)
+						printf("FAT12\t\t");
+					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x42)
+						printf("LDM\t\t");
+					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x80)
+						printf("NTFT\t\t");
+				}*/
 			}
+			printf("%.1f MB\t", diskInf->partitionEntry[i].partitionInformation.PartitionLength.QuadPart / pow(1024.0, 2));
+			printf("%.1f MB\n", diskInf->partitionEntry[i].partitionInformation.StartingOffset.QuadPart / pow(1024.0, 2));
 		}
-	} else {
+	}
+	else {
 		printf("Error code %d\n", GetLastError());
 		system("pause");
 		return 1;
 	}
-
 	return 0;
-}
-
-int CreatePartition(DiskInformation *diskInf) {
-	bool bResult;
-	int number;
-	int length;
-	int index;
-	int partitionNumber;
-	
-	printf("\n\nSelect free space to allocate partition\n");
-	printf("DISK_MANAGER> ");
-	scanf("%d", &number);
-	partitionNumber = diskInf->partitionEntry[number - 1].number;
-	index = diskInf->partitionEntry[number - 1].index;
-	
-	printf("\nEnter partition length (MB)\n");
-	printf("DISK_MANAGER> ");
-	scanf("%d", &length);
-	diskInf->pdg->PartitionEntry[index].PartitionLength.QuadPart = length * pow(1024.0, 2);
-	diskInf->pdg->PartitionEntry[index].PartitionNumber = partitionNumber;
-	diskInf->pdg->PartitionEntry[index].StartingOffset = diskInf->partitionEntry[number - 1].offset;
-	diskInf->pdg->PartitionEntry[index].PartitionStyle = PARTITION_STYLE_GPT;
-	diskInf->pdg->PartitionEntry[index].RewritePartition = TRUE;
-	
-	bResult = FALSE;
-	bResult = SetDriveLayout(diskInf->pdg);
-	if (bResult) {
-		printf("\nSuccess\n");
-	}
-	else {
-		printf("Error code %d\n", GetLastError());
-		system("pause");
-		return ((int)bResult);
-	}
-
-
-	return ((int)bResult);
-}
-
-int DeletePartition(DiskInformation *diskInf) {
-	bool bResult;
-	int number;
-	int index;
-	int partitionNumber;
-
-	printf("\n\nSelect partition to remove: ");
-	partitionNumber = diskInf->partitionEntry[number - 1].number;
-	index = diskInf->partitionEntry[number - 1].index;
-
-	diskInf->pdg->PartitionEntry[index].PartitionLength.QuadPart = 0;
-	diskInf->pdg->PartitionEntry[index].PartitionNumber = 0;
-	diskInf->pdg->PartitionEntry[index].StartingOffset.QuadPart = 0;
-	diskInf->pdg->PartitionEntry[index].RewritePartition = FALSE;
-
-	bResult = FALSE;
-	bResult = SetDriveLayout(diskInf->pdg);
-	if (bResult) {
-		printf("\nSuccess\n");
-	}
-	else {
-		printf("Error code %d\n", GetLastError());
-		system("pause");
-		return ((int)bResult);
-	}
-	return ((int)bResult);
 }

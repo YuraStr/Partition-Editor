@@ -1,5 +1,6 @@
+#pragma once
 #include "DiskFunctions.h"
+#include "DiskStructure.h"
+#include "SecondaryFunctions.h"
 
 int GetListPartition(DiskInformation *diskInf);
-int CreatePartition(DiskInformation *diskInf);
-int DeletePartition(DiskInformation *diskInf);

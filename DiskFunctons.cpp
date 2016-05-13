@@ -1,9 +1,9 @@
 #include "DiskFunctions.h"
 
 bool GetDriveLayout(DRIVE_LAYOUT_INFORMATION_EX *pgd) {
-	HANDLE hDevice;
 	DWORD junk;
 	BOOL bResult;
+	HANDLE hDevice;
 	WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0\0";
 	hDevice = CreateFile(diskName,
 		GENERIC_READ |
@@ -29,9 +29,9 @@ bool GetDriveLayout(DRIVE_LAYOUT_INFORMATION_EX *pgd) {
 }
 
 bool GetDriveGeometry(DISK_GEOMETRY *pdg) {
-	HANDLE hDevice;
 	DWORD junk;
 	BOOL bResult;
+	HANDLE hDevice;
 	WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0\0";
 	hDevice = CreateFile(diskName,
 		0,
@@ -50,34 +50,6 @@ bool GetDriveGeometry(DISK_GEOMETRY *pdg) {
 		0,
 		pdg,
 		sizeof(*pdg),
-		&junk,
-		(LPOVERLAPPED)NULL);
-	CloseHandle(hDevice);
-	return (bResult);
-}
-
-bool SetDriveLayout(DRIVE_LAYOUT_INFORMATION_EX *pdg) {
-	HANDLE hDevice;
-	DWORD junk;
-	BOOL bResult;
-	WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0\0";
-	hDevice = CreateFile(diskName,
-		GENERIC_READ |
-		GENERIC_WRITE,
-		FILE_SHARE_READ |
-		FILE_SHARE_WRITE,
-		NULL,
-		OPEN_EXISTING,
-		0,
-		NULL);
-	if (hDevice == INVALID_HANDLE_VALUE)
-		return (FALSE);
-	bResult = DeviceIoControl(hDevice,
-		IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
-		pdg,
-		sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 4 * sizeof(PARTITION_INFORMATION_EX),
-		NULL,
-		0,
 		&junk,
 		(LPOVERLAPPED)NULL);
 	CloseHandle(hDevice);
