@@ -71,13 +71,11 @@ void GetPartitionInformation(DiskInformation *diskInf) {
 				}
 			}
 		}
-		if (diskInf->partitionEntry[j].partitionInformation.PartitionStyle == PARTITION_STYLE_MBR) {
-			diskInf->partitionEntry[j].partitionInformation.Mbr = diskInf->pdg->PartitionEntry[i].Mbr;
-			continue;
+		if (diskInf->partitionEntry[j - 1].partitionInformation.PartitionStyle == PARTITION_STYLE_MBR) {
+			diskInf->partitionEntry[j - 1].partitionInformation.Mbr = diskInf->pdg->PartitionEntry[i].Mbr;
 		}
-		if (diskInf->partitionEntry[j].partitionInformation.PartitionStyle == PARTITION_STYLE_GPT) {
-			diskInf->partitionEntry[j].partitionInformation.Gpt = diskInf->pdg->PartitionEntry[i].Gpt;
-			continue;
+		if (diskInf->partitionEntry[j - 1].partitionInformation.PartitionStyle == PARTITION_STYLE_GPT) {
+			diskInf->partitionEntry[j - 1].partitionInformation.Gpt = diskInf->pdg->PartitionEntry[i].Gpt;
 		}
 	}
 	if (flag) {

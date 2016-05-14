@@ -15,30 +15,42 @@ int GetListPartition(DiskInformation *diskInf) {
 		GetPartitionInformation(diskInf);
 		for (int i = 0; i < diskInf->partitionCount; i++) {
 			printf("%d. Partition %d\t", i + 1, diskInf->partitionEntry[i].partitionInformation.PartitionNumber);
-			printf("%d\t", diskInf->pdg->PartitionStyle);
+			if (i < 9) printf("\t");
+			printf("%.1f MB\t", diskInf->partitionEntry[i].partitionInformation.PartitionLength.QuadPart / pow(1024.0, 2));
+			printf("%.1f MB\t", diskInf->partitionEntry[i].partitionInformation.StartingOffset.QuadPart / pow(1024.0, 2));
 			if (diskInf->partitionEntry[i].partitionInformation.PartitionStyle == PARTITION_STYLE_RAW) {
 				printf("Empty space\t");
 			} else {
-				printf("%x\t\t", diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType);
-				/*if (diskInf->partitionEntry[i].partitionInformation.PartitionStyle == PARTITION_STYLE_MBR) {
+				if (diskInf->partitionEntry[i].partitionInformation.PartitionStyle == PARTITION_STYLE_MBR) {
 					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x07)
-						printf("NTFS\t\t");
+						printf("NTFS\t");
 					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x05)
-						printf("Extended\t\t");
+						printf("Extended\t");
 					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x0B)
-						printf("FAT32\t\t");
+						printf("FAT32\t");
 					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x04)
-						printf("FAT16\t\t");
+						printf("FAT16\t");
 					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x01)
-						printf("FAT12\t\t");
+						printf("FAT12\t");
 					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x42)
-						printf("LDM\t\t");
+						printf("LDM\t");
 					if (diskInf->partitionEntry[i].partitionInformation.Mbr.PartitionType == 0x80)
-						printf("NTFT\t\t");
-				}*/
+						printf("NTFT\t");
+				} else { 
+					printf("%x ", diskInf->partitionEntry[i].partitionInformation.Gpt.PartitionType.Data1);
+					if (diskInf->partitionEntry[i].partitionInformation.Gpt.PartitionType.Data1 == 0xde94bba4)
+						printf("Recovery\t");
+					if (diskInf->partitionEntry[i].partitionInformation.Gpt.PartitionType.Data1 == 0xc12a7328)
+						printf("EFI System Partition");
+					if (diskInf->partitionEntry[i].partitionInformation.Gpt.PartitionType.Data1 == 0xebd0a0a2)
+						printf("Basic data Partition");
+					if (diskInf->partitionEntry[i].partitionInformation.Gpt.PartitionType.Data1 == 0x657fd6d)
+						printf("Linux swap");
+					if (diskInf->partitionEntry[i].partitionInformation.Gpt.PartitionType.Data1 == 0xfc63daf)
+						printf("Ext 4");
+				}
+				printf("\n");
 			}
-			printf("%.1f MB\t", diskInf->partitionEntry[i].partitionInformation.PartitionLength.QuadPart / pow(1024.0, 2));
-			printf("%.1f MB\n", diskInf->partitionEntry[i].partitionInformation.StartingOffset.QuadPart / pow(1024.0, 2));
 		}
 	}
 	else {
