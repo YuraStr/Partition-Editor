@@ -42,7 +42,7 @@ bool GetDriveGeometry(DISK_GEOMETRY *pdg) {
 		0,
 		NULL);
 	if (hDevice == INVALID_HANDLE_VALUE) {
-		return (FALSE);
+		return FALSE;
 	}
 	bResult = DeviceIoControl(hDevice,
 		IOCTL_DISK_GET_DRIVE_GEOMETRY,
@@ -53,5 +53,37 @@ bool GetDriveGeometry(DISK_GEOMETRY *pdg) {
 		&junk,
 		(LPOVERLAPPED)NULL);
 	CloseHandle(hDevice);
-	return (bResult);
+	return bResult;
+}
+
+bool SetDriveLayout(DRIVE_LAYOUT_INFORMATION_EX *pdg) {
+	DWORD junk;
+	BOOL bResult;
+	HANDLE hDevice;
+	WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0\0";
+
+	hDevice = CreateFile(diskName,
+		0,
+		FILE_SHARE_READ | 
+		FILE_SHARE_WRITE,
+		NULL,
+		OPEN_EXISTING,
+		0,
+		NULL);
+
+	if (hDevice == INVALID_HANDLE_VALUE) {
+		return FALSE;
+	}
+
+	bResult = DeviceIoControl(hDevice,
+		IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
+		NULL,
+		0,
+		pdg,
+		sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
+		&junk,
+		(LPOVERLAPPED)NULL);
+
+	CloseHandle(hDevice);
+	return bResult;
 }
