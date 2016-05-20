@@ -1,7 +1,7 @@
 #ifndef HARDDISKMANAGER_H
 #define HARDDISKMANAGER_H
 
-#include "partitioninformation.h"
+#include "partitionstructure.h"
 
 #include <windows.h>
 #include <ntdddisk.h>
@@ -14,6 +14,7 @@ private:
     LARGE_INTEGER diskSize;
     int partitionCount;
     PartitionStructure *partition;
+    DRIVE_LAYOUT_INFORMATION_EX *pgd;
 
     void setDiskSize();
     void fillInPartitionInformation();
@@ -22,7 +23,7 @@ public:
     HardDiskManager();
     ~HardDiskManager();
 
-    void createNewPartition();
+    void createNewPartition(int number, int size);
     void deletePartition();
     void changePartitionSize();
 

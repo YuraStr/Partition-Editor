@@ -20,7 +20,6 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->tableWidget->setHorizontalHeaderItem(0, new QTableWidgetItem("Size (MB)"));
         ui->tableWidget->setHorizontalHeaderItem(1, new QTableWidgetItem("Offset (MB)"));
         ui->tableWidget->setHorizontalHeaderItem(2, new QTableWidgetItem("Type"));
-        ui->tableWidget->setHorizontalHeaderItem(3, new QTableWidgetItem(""));
         ui->tableWidget->setColumnWidth(3, 209);
 
         if (ui->tableWidget->selectedItems().size() > 4) {

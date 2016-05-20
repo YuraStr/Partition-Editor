@@ -42,8 +42,7 @@ void HardDiskManager::fillInPartitionInformation()
 {
     DWORD junk;
     HANDLE hDevice;
-    DRIVE_LAYOUT_INFORMATION_EX *pgd = (DRIVE_LAYOUT_INFORMATION_EX*)malloc(sizeof(DRIVE_LAYOUT_INFORMATION_EX) +
-                                                                                16 * sizeof(PARTITION_INFORMATION_EX));
+    pgd = (DRIVE_LAYOUT_INFORMATION_EX*)malloc(sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX));
     WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
     hDevice = CreateFile(diskName,
         GENERIC_READ |
@@ -67,7 +66,6 @@ void HardDiskManager::fillInPartitionInformation()
             &junk,
        (LPOVERLAPPED)NULL);
     }
-    CloseHandle(hDevice);
 
     int number = -1;
     partition = (PartitionStructure*) malloc (sizeof(PartitionStructure) * (pgd->PartitionCount));
@@ -78,6 +76,8 @@ void HardDiskManager::fillInPartitionInformation()
             partition[number].isEmptySpace = false;
             partition[number].partitionInformation = pgd->PartitionEntry[i];
             partition[number].partitionInformation.PartitionNumber = number + 1;
+            strcpy(partition[number].fileSystem, "Unknown");
+            strcpy(partition[number].partitionName, "Local tom");
             continue;
         }
 
@@ -107,7 +107,66 @@ void HardDiskManager::fillInPartitionInformation()
 
     partitionCount = number + 1;
 
-    free(pgd);
+    CloseHandle(hDevice);
+}
+
+void HardDiskManager::createNewPartition(int number, int newSize)
+{
+    int newIndex = partition[number - 1].index;
+
+    if (newSize > partition[number - 1].partitionInformation.PartitionLength.QuadPart) {
+        QMessageBox msg;
+        msg.setText("Error: new size too big");
+        msg.exec();
+        return;
+    }
+
+    partition[number - 1].isEmptySpace = false;
+    partition[number - 1].partitionInformation.PartitionLength.QuadPart = newSize * pow(1024, 2);
+    partition[number - 1].partitionInformation.RewritePartition = TRUE;
+    if (partition->partitionInformation.PartitionStyle == PARTITION_STYLE_GPT) {
+        partition[number - 1].partitionInformation.PartitionStyle = PARTITION_STYLE_GPT;
+        //wcsrtcpy(partition[number - 1].partitionInformation.Gpt.Name,"Basic data partition");
+        partition[number - 1].partitionInformation.Gpt.PartitionType.Data1 = 0xEBD0A0A2;
+        partition[number - 1].partitionInformation.Gpt.PartitionType.Data2 = 0xB9E5;
+        partition[number - 1].partitionInformation.Gpt.PartitionType.Data3 = 0xB9E5;
+        partition[number - 1].partitionInformation.Gpt.PartitionType.Data4 = rand()%1000000;
+        partition[number - 1].partitionInformation.Gpt.Attributes = GPT_ATTRIBUTE_PLATFORM_REQUIRED;
+        //partition[number - 1].partitionInformation.Gpt.PartitionId
+    } else {
+        partition[number - 1].partitionInformation.PartitionStyle = PARTITION_STYLE_MBR;
+        partition[number - 1].partitionInformation.Mbr.BootIndicator = FALSE;
+        partition[number - 1].partitionInformation.Mbr.HiddenSectors = 0;
+        partition[number - 1].partitionInformation.Mbr.PartitionType = 0x07;
+        partition[number - 1].partitionInformation.Mbr.RecognizedPartition = TRUE;
+    }
+
+    DWORD junk;
+    HANDLE hDevice;
+
+    WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
+    hDevice = CreateFile(diskName,
+        GENERIC_READ |
+        GENERIC_WRITE,
+        FILE_SHARE_READ |
+        FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
+    if (hDevice == INVALID_HANDLE_VALUE) {
+        partitionCount = -1;
+        return;
+    } else {
+        DeviceIoControl(hDevice,
+            IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
+            NULL,
+            0,
+            pgd,
+            sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
+            &junk,
+       (LPOVERLAPPED)NULL);
+    }
 }
 
 int HardDiskManager::getPartitionCount()
