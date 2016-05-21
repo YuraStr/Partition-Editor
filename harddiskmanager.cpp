@@ -76,8 +76,6 @@ void HardDiskManager::fillInPartitionInformation()
             partition[number].isEmptySpace = false;
             partition[number].partitionInformation = pgd->PartitionEntry[i];
             partition[number].partitionInformation.PartitionNumber = number + 1;
-            strcpy(partition[number].fileSystem, "Unknown");
-            strcpy(partition[number].partitionName, "Local tom");
             continue;
         }
 
@@ -122,23 +120,19 @@ void HardDiskManager::createNewPartition(int number, int newSize)
     }
 
     partition[number - 1].isEmptySpace = false;
-    partition[number - 1].partitionInformation.PartitionLength.QuadPart = newSize * pow(1024, 2);
-    partition[number - 1].partitionInformation.RewritePartition = TRUE;
-    if (partition->partitionInformation.PartitionStyle == PARTITION_STYLE_GPT) {
-        partition[number - 1].partitionInformation.PartitionStyle = PARTITION_STYLE_GPT;
-        //wcsrtcpy(partition[number - 1].partitionInformation.Gpt.Name,"Basic data partition");
-        partition[number - 1].partitionInformation.Gpt.PartitionType.Data1 = 0xEBD0A0A2;
-        partition[number - 1].partitionInformation.Gpt.PartitionType.Data2 = 0xB9E5;
-        partition[number - 1].partitionInformation.Gpt.PartitionType.Data3 = 0xB9E5;
-        partition[number - 1].partitionInformation.Gpt.PartitionType.Data4 = rand()%1000000;
-        partition[number - 1].partitionInformation.Gpt.Attributes = GPT_ATTRIBUTE_PLATFORM_REQUIRED;
-        //partition[number - 1].partitionInformation.Gpt.PartitionId
+    pgd->PartitionEntry[newIndex].PartitionLength.QuadPart = newSize * pow(1024, 2);
+    pgd->PartitionEntry[newIndex].RewritePartition = TRUE;
+    if (pgd->PartitionStyle == PARTITION_STYLE_GPT) {
+        pgd->PartitionEntry[newIndex].PartitionStyle = PARTITION_STYLE_GPT;
+        strcpy(partition[number - 1].partitionInformation.Gpt.Name,"Basic data partition");
+        setNewGUID(newIndex);
+        pgd->PartitionEntry[newIndex].Gpt.Attributes = GPT_ATTRIBUTE_PLATFORM_REQUIRED;
     } else {
-        partition[number - 1].partitionInformation.PartitionStyle = PARTITION_STYLE_MBR;
-        partition[number - 1].partitionInformation.Mbr.BootIndicator = FALSE;
-        partition[number - 1].partitionInformation.Mbr.HiddenSectors = 0;
-        partition[number - 1].partitionInformation.Mbr.PartitionType = 0x07;
-        partition[number - 1].partitionInformation.Mbr.RecognizedPartition = TRUE;
+        pgd->PartitionEntry[newIndex].PartitionStyle = PARTITION_STYLE_MBR;
+        pgd->PartitionEntry[newIndex].Mbr.BootIndicator = FALSE;
+        pgd->PartitionEntry[newIndex].Mbr.HiddenSectors = 0;
+        pgd->PartitionEntry[newIndex].Mbr.PartitionType = 0x07;
+        pgd->PartitionEntry[newIndex].Mbr.RecognizedPartition = TRUE;
     }
 
     DWORD junk;
@@ -146,27 +140,52 @@ void HardDiskManager::createNewPartition(int number, int newSize)
 
     WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
     hDevice = CreateFile(diskName,
-        GENERIC_READ |
-        GENERIC_WRITE,
-        FILE_SHARE_READ |
-        FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        0,
-        NULL);
-    if (hDevice == INVALID_HANDLE_VALUE) {
-        partitionCount = -1;
-        return;
-    } else {
-        DeviceIoControl(hDevice,
-            IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
-            NULL,
-            0,
-            pgd,
-            sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
-            &junk,
-       (LPOVERLAPPED)NULL);
-    }
+                         GENERIC_READ |
+                         GENERIC_WRITE,
+                         FILE_SHARE_READ |
+                         FILE_SHARE_WRITE,
+                         NULL,
+                         OPEN_EXISTING,
+                         0,
+                         NULL);
+
+    DeviceIoControl(hDevice,
+                    IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
+                    NULL,
+                    0,
+                    pgd,
+                    sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
+                    &junk,
+                    (LPOVERLAPPED)NULL);
+}
+
+void HardDiskManager::setNewGUID(int index)
+{
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data1 = 0xEBD0A0A2;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data2 = 0xB9E5;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data3 = 0x4433;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[0] = 0x87;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[1] = 0xC0;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[2] = 0x68;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[3] = 0xB6;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[4] = 0xB7;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[5] = 0x26;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[6] = 0x99;
+    pgd->PartitionEntry[index].Gpt.PartitionType.Data4[7] = 0x77;
+
+    QUuid uuid = QUuid::createUuid();
+    GUID guid = GUID(uuid);
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data1 = guid.Data1;
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data2 = guid.Data2;
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data3 = guid.Data3;
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[0] = guid.Data4[0];
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[1] = guid.Data4[1];
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[2] = guid.Data4[2];
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[3] = guid.Data4[3];
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[4] = guid.Data4[4];
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[5] = guid.Data4[5];
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[6] = guid.Data4[6];
+    pgd->PartitionEntry[index].Gpt.PartitionId.Data4[7] = guid.Data4[7];
 }
 
 int HardDiskManager::getPartitionCount()

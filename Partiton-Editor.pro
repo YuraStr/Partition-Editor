@@ -20,5 +20,3 @@ HEADERS  += mainwindow.h \
     partitionstructure.h
 
 FORMS    += mainwindow.ui
-
-win32:QMAKE_LFLAGS += -shared

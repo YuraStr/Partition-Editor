@@ -3,8 +3,12 @@
 
 #include "partitionstructure.h"
 
+#include <iostream>
 #include <windows.h>
 #include <ntdddisk.h>
+#include <quuid.h>
+#include <qdebug.h>
+
 
 #include <QMessageBox>
 
@@ -18,6 +22,7 @@ private:
 
     void setDiskSize();
     void fillInPartitionInformation();
+    void setNewGUID(int index);
 
 public:
     HardDiskManager();
