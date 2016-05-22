@@ -8,6 +8,7 @@
 #include <ntdddisk.h>
 #include <quuid.h>
 #include <qdebug.h>
+#include <string.h>
 
 
 #include <QMessageBox>
@@ -29,8 +30,8 @@ public:
     ~HardDiskManager();
 
     void createNewPartition(int number, int size);
-    void deletePartition();
-    void changePartitionSize();
+    void deletePartition(int number);
+    void changePartitionSize(int number, int new_size);
 
     int getPartitionCount();
     LARGE_INTEGER getDiskSize();

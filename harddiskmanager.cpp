@@ -124,7 +124,7 @@ void HardDiskManager::createNewPartition(int number, int newSize)
     pgd->PartitionEntry[newIndex].RewritePartition = TRUE;
     if (pgd->PartitionStyle == PARTITION_STYLE_GPT) {
         pgd->PartitionEntry[newIndex].PartitionStyle = PARTITION_STYLE_GPT;
-        strcpy(partition[number - 1].partitionInformation.Gpt.Name,"Basic data partition");
+        wcscpy(partition[number - 1].partitionInformation.Gpt.Name, L"Basic data partition");
         setNewGUID(newIndex);
         pgd->PartitionEntry[newIndex].Gpt.Attributes = GPT_ATTRIBUTE_PLATFORM_REQUIRED;
     } else {
@@ -157,6 +157,10 @@ void HardDiskManager::createNewPartition(int number, int newSize)
                     sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
                     &junk,
                     (LPOVERLAPPED)NULL);
+
+    CloseHandle(hDevice);
+
+    fillInPartitionInformation();
 }
 
 void HardDiskManager::setNewGUID(int index)
@@ -186,6 +190,93 @@ void HardDiskManager::setNewGUID(int index)
     pgd->PartitionEntry[index].Gpt.PartitionId.Data4[5] = guid.Data4[5];
     pgd->PartitionEntry[index].Gpt.PartitionId.Data4[6] = guid.Data4[6];
     pgd->PartitionEntry[index].Gpt.PartitionId.Data4[7] = guid.Data4[7];
+}
+
+void HardDiskManager::deletePartition(int number)
+{
+    if (partition[number - 1].isEmptySpace) {
+        QMessageBox msg;
+        msg.setText("Error: this partitiion if empty");
+        msg.exec();
+        return;
+    }
+
+    int newIndex = partition[number - 1].index;
+    pgd->PartitionEntry[newIndex].PartitionLength.QuadPart = 0;
+    pgd->PartitionEntry[newIndex].StartingOffset.QuadPart = 0;
+    pgd->PartitionEntry[newIndex].PartitionStyle = PARTITION_STYLE_RAW;
+    pgd->PartitionEntry[newIndex].PartitionNumber = 0;
+    pgd->PartitionEntry[newIndex].RewritePartition = FALSE;
+    if (pgd->PartitionStyle == PARTITION_STYLE_GPT) {
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data1 = 0x00000000;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data2 = 0x0000;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data3 = 0x0000;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[0] = 0x00;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[1] = 0x00;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[2] = 0x00;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[3] = 0x00;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[4] = 0x00;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[5] = 0x00;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[6] = 0x00;
+        pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[7] = 0x00;
+        wcscpy(pgd->PartitionEntry[newIndex].Gpt.Name, L"");
+    }
+
+    DWORD junk;
+    HANDLE hDevice;
+    WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
+    hDevice = CreateFile(diskName,
+                         GENERIC_READ |
+                         GENERIC_WRITE,
+                         FILE_SHARE_READ |
+                         FILE_SHARE_WRITE,
+                         NULL,
+                         OPEN_EXISTING,
+                         0,
+                         NULL);
+    DeviceIoControl(hDevice,
+                    IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
+                    NULL,
+                    0,
+                    pgd,
+                    sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
+                    &junk,
+                    (LPOVERLAPPED)NULL);
+
+    fillInPartitionInformation();
+}
+
+void HardDiskManager::changePartitionSize(int number, int size)
+{
+    DISK_GROW_PARTITION grow;
+
+    grow.PartitionNumber = partition[number - 1].index;
+    grow.BytesToGrow.QuadPart = size * pow(1024, 2);
+
+    DWORD junk;
+    HANDLE hDevice;
+    WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
+
+    hDevice = CreateFile(diskName,
+                         GENERIC_READ |
+                         GENERIC_WRITE,
+                         FILE_SHARE_READ |
+                         FILE_SHARE_WRITE,
+                         NULL,
+                         OPEN_EXISTING,
+                         0,
+                         NULL);
+
+    DeviceIoControl(hDevice,
+                    IOCTL_DISK_GROW_PARTITION,
+                    NULL,
+                    0,
+                    &grow,
+                    sizeof(grow),
+                    &junk,
+                    (LPOVERLAPPED)NULL);
+
+    fillInPartitionInformation();
 }
 
 int HardDiskManager::getPartitionCount()
