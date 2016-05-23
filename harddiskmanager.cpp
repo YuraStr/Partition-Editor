@@ -220,6 +220,11 @@ void HardDiskManager::deletePartition(int number)
         pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[6] = 0x00;
         pgd->PartitionEntry[newIndex].Gpt.PartitionType.Data4[7] = 0x00;
         wcscpy(pgd->PartitionEntry[newIndex].Gpt.Name, L"");
+    } else {
+        pgd->PartitionEntry[newIndex].Mbr.BootIndicator = FALSE;
+        pgd->PartitionEntry[newIndex].Mbr.PartitionType = PARTITION_STYLE_RAW;
+        pgd->PartitionEntry[newIndex].Mbr.HiddenSectors = 0;
+        pgd->PartitionEntry[newIndex].Mbr.RecognizedPartition = FALSE;
     }
 
     DWORD junk;

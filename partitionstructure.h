@@ -5,6 +5,8 @@
 
 struct PartitionStructure {
     int index;
+    char name[30];
+    char file_system[30];
     PARTITION_INFORMATION_EX partitionInformation;
     bool isEmptySpace;
 };
