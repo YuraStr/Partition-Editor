@@ -1,9 +1,40 @@
 #include "harddiskmanager.h"
+#define BUFSIZE MAX_PATH
+#define FILESYSNAMEBUFSIZE MAX_PATH
 
 HardDiskManager::HardDiskManager()
 {
     setDiskSize();
     fillInPartitionInformation();
+}
+
+BOOL HardDiskManager::processVolume(HANDLE hVol, char *Buf, int iBufSize)
+{
+    DWORD lpMaximumComponentLength;
+    DWORD dwSysFlags;
+    TCHAR volumeName[MAX_PATH + 1] = { 0 };
+    char FileSysNameBuf[FILESYSNAMEBUFSIZE];
+    BOOL bFlag;
+
+    GetVolumeInformation(
+        (LPCWSTR)Buf,
+        volumeName,
+        BUFSIZE,
+        NULL,
+        &lpMaximumComponentLength,
+        &dwSysFlags,
+        (LPWSTR)FileSysNameBuf,
+        FILESYSNAMEBUFSIZE
+        );
+
+    printf("The volume found: %S\n", Buf);
+    wprintf(L"Volume name: %S\n", volumeName);
+    printf("The file system: %S\n", FileSysNameBuf);
+    bFlag = FindNextVolume(hVol	,
+        (LPWSTR)Buf,
+        iBufSize);
+
+    return (bFlag);
 }
 
 void HardDiskManager::setDiskSize()
@@ -73,6 +104,8 @@ void HardDiskManager::fillInPartitionInformation()
         if (pgd->PartitionEntry[i].PartitionNumber != 0) {
             ++number;
             partition[number].index = i;
+            strcpy(partition[number].name, "Logical volume");
+            strcpy(partition[number].file_system, "Unknown");
             partition[number].isEmptySpace = false;
             partition[number].partitionInformation = pgd->PartitionEntry[i];
             partition[number].partitionInformation.PartitionNumber = number + 1;
@@ -83,6 +116,8 @@ void HardDiskManager::fillInPartitionInformation()
             if (pgd->PartitionEntry[i - 1].PartitionNumber != 0) {
                 ++number;
                 partition[number].index = i;
+                strcpy(partition[number].name, "Logical volume");
+                strcpy(partition[number].file_system, "Unknown");
                 partition[number].isEmptySpace = true;
                 partition[number].partitionInformation.PartitionStyle = PARTITION_STYLE_RAW;
                 partition[number].partitionInformation.PartitionNumber = number + 1;
@@ -106,6 +141,25 @@ void HardDiskManager::fillInPartitionInformation()
     partitionCount = number + 1;
 
     CloseHandle(hDevice);
+
+    char buf[BUFSIZE];
+    HANDLE hVol;
+    BOOL bFlag;
+
+    hVol = FindFirstVolume((LPWSTR)buf, BUFSIZE);
+
+    if(hVol == INVALID_HANDLE_VALUE) {
+        printf("No volumes found!\n");
+        return;
+    }
+    bFlag = processVolume(hVol, buf, BUFSIZE);
+    while(bFlag) {
+        bFlag = processVolume(hVol, buf, BUFSIZE);
+    }
+
+    bFlag = FindVolumeClose(hVol);
+
+    cout << partition[1].partitionInformation.Gpt.PartitionType.Data1 << endl;
 }
 
 void HardDiskManager::createNewPartition(int number, int newSize)

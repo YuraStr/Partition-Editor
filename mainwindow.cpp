@@ -7,6 +7,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    createWindow = new CreatePartition();
     hdm = new HardDiskManager();
     if (hdm->getPartitionCount() == -1) {
         ui->label->setText("Error");
@@ -46,4 +47,17 @@ MainWindow::~MainWindow()
 {
     delete hdm;
     delete ui;
+}
+
+void MainWindow::on_createButton_clicked()
+{
+    if (strcmp(ui->tableWidget->selectedItems().at(2)->text().toStdString().c_str(), "Empty space")) {
+        QMessageBox msg;
+        msg.setText("Error: choose empty partition!");
+        msg.show();
+        return;
+    }
+
+    createWindow->exec();
+
 }

@@ -9,6 +9,9 @@
 #include <quuid.h>
 #include <qdebug.h>
 #include <string.h>
+#include <objbase.h>
+
+using namespace std;
 
 
 #include <QMessageBox>
@@ -24,6 +27,7 @@ private:
     void setDiskSize();
     void fillInPartitionInformation();
     void setNewGUID(int index);
+    BOOL processVolume(HANDLE hVol, char *Buf, int iBufSize);
 
 public:
     HardDiskManager();

@@ -13,10 +13,13 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    harddiskmanager.cpp
+    harddiskmanager.cpp \
+    createpartition.cpp
 
 HEADERS  += mainwindow.h \
     harddiskmanager.h \
-    partitionstructure.h
+    partitionstructure.h \
+    createpartition.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    createpartition.ui
