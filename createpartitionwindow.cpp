@@ -1,5 +1,5 @@
-#include "createpartition.h"
-#include "ui_createpartition.h"
+#include "createpartitionwindow.h"
+#include "ui_createpartitionwindow.h"
 
 CreatePartition::CreatePartition(QWidget *parent) :
     QDialog(parent),

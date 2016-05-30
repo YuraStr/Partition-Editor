@@ -9,7 +9,6 @@
 #include <quuid.h>
 #include <qdebug.h>
 #include <string.h>
-#include <objbase.h>
 
 using namespace std;
 

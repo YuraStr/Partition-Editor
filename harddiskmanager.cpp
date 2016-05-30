@@ -15,24 +15,38 @@ BOOL HardDiskManager::processVolume(HANDLE hVol, char *Buf, int iBufSize)
     TCHAR volumeName[MAX_PATH + 1] = { 0 };
     char FileSysNameBuf[FILESYSNAMEBUFSIZE];
     BOOL bFlag;
+    char buffer[100];
+    char guid[40];
 
-    GetVolumeInformation(
-        (LPCWSTR)Buf,
-        volumeName,
-        BUFSIZE,
-        NULL,
-        &lpMaximumComponentLength,
-        &dwSysFlags,
-        (LPWSTR)FileSysNameBuf,
-        FILESYSNAMEBUFSIZE
-        );
+    GetVolumeInformation((LPCWSTR)Buf,
+                         volumeName,
+                         BUFSIZE,
+                         NULL,
+                         &lpMaximumComponentLength,
+                         &dwSysFlags,
+                         (LPWSTR)FileSysNameBuf,
+                         FILESYSNAMEBUFSIZE);
 
-    printf("The volume found: %S\n", Buf);
-    wprintf(L"Volume name: %S\n", volumeName);
-    printf("The file system: %S\n", FileSysNameBuf);
-    bFlag = FindNextVolume(hVol	,
-        (LPWSTR)Buf,
-        iBufSize);
+    wprintf(L"%S\n", Buf);
+    wcstombs(buffer, (wchar_t*)Buf, 100);
+
+    int i, j;
+    for (i = 11, j = 0; i < 19; i++, j++) {
+        guid[j] = buffer[i];
+    }
+    guid[j] = '\0';
+    printf("%s\n", guid);
+
+    char partguid[40];
+    for (int i = 0; i < partitionCount; i++) {
+        itoa(partition[i].partitionInformation.Gpt.PartitionId.Data1, partguid, 16);
+        if (!strcmp(guid, partguid)) {
+            strcpy(partition[i].file_system, FileSysNameBuf);
+            strcpy(partition[i].name, volumeName);
+        }
+    }
+
+    bFlag = FindNextVolume(hVol, (LPWSTR)Buf, iBufSize);
 
     return (bFlag);
 }
@@ -158,8 +172,6 @@ void HardDiskManager::fillInPartitionInformation()
     }
 
     bFlag = FindVolumeClose(hVol);
-
-    cout << partition[1].partitionInformation.Gpt.PartitionType.Data1 << endl;
 }
 
 void HardDiskManager::createNewPartition(int number, int newSize)

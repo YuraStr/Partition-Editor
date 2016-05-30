@@ -54,7 +54,7 @@ void MainWindow::on_createButton_clicked()
     if (strcmp(ui->tableWidget->selectedItems().at(2)->text().toStdString().c_str(), "Empty space")) {
         QMessageBox msg;
         msg.setText("Error: choose empty partition!");
-        msg.show();
+        msg.exec();
         return;
     }
 

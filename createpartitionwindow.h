@@ -1,5 +1,5 @@
-#ifndef CREATEPARTITION_H
-#define CREATEPARTITION_H
+#ifndef CREATEPARTITIONWINDOW_H
+#define CREATEPARTITIONWINDOW_H
 
 #include <QDialog>
 
@@ -22,4 +22,4 @@ private:
     Ui::CreatePartition *ui;
 };
 
-#endif // CREATEPARTITION_H
+#endif // CREATEPARTITIONWINDOW_H

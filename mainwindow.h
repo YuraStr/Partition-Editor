@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include "harddiskmanager.h"
-#include "createpartition.h"
+#include "createpartitionwindow.h"
 #include <QMainWindow>
 
 namespace Ui {
