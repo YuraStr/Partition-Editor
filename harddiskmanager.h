@@ -26,6 +26,7 @@ private:
     void setDiskSize();
     void fillInPartitionInformation();
     void setNewGUID(int index);
+    void getFreeSpaces();
     BOOL processVolume(HANDLE hVol, char *Buf, int iBufSize);
 
 public:

@@ -14,12 +14,18 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     harddiskmanager.cpp \
-    createpartitionwindow.cpp
+    createpartitionwindow.cpp \
+    deletepartitionwindow.cpp \
+    resizepartitionwindow.cpp
 
 HEADERS  += mainwindow.h \
     harddiskmanager.h \
     partitionstructure.h \
-    createpartitionwindow.h
+    createpartitionwindow.h \
+    deletepartitionwindow.h \
+    resizepartitionwindow.h
 
 FORMS    += mainwindow.ui \
-    createpartitionwindow.ui
+    createpartitionwindow.ui \
+    deletepartitionwindow.ui \
+    resizepartitionwindow.ui
