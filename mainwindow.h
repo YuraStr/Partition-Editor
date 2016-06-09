@@ -23,17 +23,19 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_createButton_clicked();
-    void createPartition(int size, QString name);
+    void createPartition(int size);
     void deletePartition();
+    void resizePartition(int new_size);
 
+    void on_createButton_clicked();
+    
     void on_deleteButton_clicked();
 
     void on_resizeButton_clicked();
 
 private:
     Ui::MainWindow *ui;
-    CreatePartition *createWindow;
+    CreatePartitionWindow *createWindow;
     DeletePartitionWindow *deleteWindow;
     ResizePartitionWindow *resizeWindow;
 };

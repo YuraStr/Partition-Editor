@@ -1,40 +1,40 @@
-#include "createpartitionwindow.h"
-#include "ui_createpartitionwindow.h"
+#include "CreatePartitionWindow.h"
+#include "ui_CreatePartitionWindow.h"
 
-CreatePartition::CreatePartition(QWidget *parent) :
+CreatePartitionWindow::CreatePartitionWindow(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::CreatePartition)
+    ui(new Ui::CreatePartitionWindow)
 {
     ui->setupUi(this);
 
-
-    QRegExp sizerx("[0-9]");
-    QRegExp namerx("[A-Za-z]");
-
-
-    ui->sizeLineEdit->setValidator(new QRegExpValidator(sizerx));
-    ui->nameLineEdit->setValidator(new QRegExpValidator(namerx));
-
+    setWindowTitle("Create partition");
 }
 
-CreatePartition::~CreatePartition()
+CreatePartitionWindow::~CreatePartitionWindow()
 {
     delete ui;
 }
 
-void CreatePartition::on_cancelButton_clicked()
+void CreatePartitionWindow::on_cancelButton_clicked()
 {
     close();
 }
 
-void CreatePartition::writeInWindow(int free_space)
+void CreatePartitionWindow::writeInWindow(int free_space)
 {
     this->free_space = free_space;
     ui->freeSpaceLabel->setText(QString::number(free_space));
 }
 
-void CreatePartition::on_okButton_clicked()
+void CreatePartitionWindow::on_okButton_clicked()
 {
-    emit okButtonClicked(ui->sizeLineEdit->text().toInt(), ui->nameLineEdit->text());
+    emit okButtonClicked(ui->sizeLineEdit->text().toInt());
     close();
+}
+
+void CreatePartitionWindow::on_sizeLineEdit_textChanged(const QString &arg1)
+{
+    ui->freeSpaceLabel->setText(QString::number(free_space - arg1.toInt()));
+    if (ui->sizeLineEdit->text().toInt() > free_space)
+        ui->sizeLineEdit->setText(QString::number(free_space));
 }

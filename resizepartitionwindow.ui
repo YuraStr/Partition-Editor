@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>281</width>
-    <height>188</height>
+    <width>273</width>
+    <height>128</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,14 +24,14 @@
    </property>
    <property name="text">
     <string>Free space
-before</string>
+at partition</string>
    </property>
   </widget>
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
-     <x>100</x>
-     <y>150</y>
+     <x>90</x>
+     <y>90</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -43,8 +43,8 @@ before</string>
   <widget class="QPushButton" name="pushButton_2">
    <property name="geometry">
     <rect>
-     <x>190</x>
-     <y>150</y>
+     <x>180</x>
+     <y>90</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -89,6 +89,32 @@ behind</string>
      <width>71</width>
      <height>22</height>
     </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="partSpace">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>50</y>
+     <width>61</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="behindSpace">
+   <property name="geometry">
+    <rect>
+     <x>190</x>
+     <y>50</y>
+     <width>61</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
    </property>
   </widget>
  </widget>

@@ -7,32 +7,33 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    createWindow = new CreatePartition();
+    createWindow = new CreatePartitionWindow();
     deleteWindow = new DeletePartitionWindow();
     resizeWindow = new ResizePartitionWindow();
     hdm = new HardDiskManager();
 
     setInfo();
 
-    connect(createWindow, SIGNAL(okButtonClicked(int,QString)), this, SLOT(createPartition(int,QString)));
+    connect(createWindow, SIGNAL(okButtonClicked(int)), this, SLOT(createPartition(int)));
     connect(deleteWindow, SIGNAL(deletePartition()), this, SLOT(deletePartition()));
+    connect(resizeWindow, SIGNAL(resizePartition(int)), this, SLOT(resizePartition(int)));
 }
 
 void MainWindow::setInfo()
 {
+    ui->tableWidget->setColumnCount(5);
+    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tableWidget->setShowGrid(false);
+    ui->tableWidget->setRowCount(hdm->getPartitionCount());
+    ui->tableWidget->setHorizontalHeaderItem(0, new QTableWidgetItem("Name"));
+    ui->tableWidget->setHorizontalHeaderItem(1, new QTableWidgetItem("Size (MB)"));
+    ui->tableWidget->setHorizontalHeaderItem(2, new QTableWidgetItem("File system"));
+    ui->tableWidget->setHorizontalHeaderItem(3, new QTableWidgetItem("Type"));
+    ui->tableWidget->setHorizontalHeaderItem(4, new QTableWidgetItem("Free space (MB)"));
+
     if (hdm->getPartitionCount() == -1) {
     } else {
-        ui->tableWidget->setColumnCount(5);
-        ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-        ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        ui->tableWidget->setShowGrid(false);
-        ui->tableWidget->setRowCount(hdm->getPartitionCount());
-        ui->tableWidget->setHorizontalHeaderItem(0, new QTableWidgetItem("Name"));
-        ui->tableWidget->setHorizontalHeaderItem(1, new QTableWidgetItem("Size (MB)"));
-        ui->tableWidget->setHorizontalHeaderItem(2, new QTableWidgetItem("File system"));
-        ui->tableWidget->setHorizontalHeaderItem(3, new QTableWidgetItem("Type"));
-        ui->tableWidget->setHorizontalHeaderItem(4, new QTableWidgetItem("Free space (MB)"));
-
         if (ui->tableWidget->selectedItems().size() > 4) {
             QMessageBox msg;
             msg.setText("Error");
@@ -77,7 +78,7 @@ void MainWindow::on_createButton_clicked()
     createWindow->exec();
 }
 
-void MainWindow::createPartition(int size, QString name)
+void MainWindow::createPartition(int size)
 {
     hdm->createNewPartition(ui->tableWidget->row(ui->tableWidget->selectedItems().at(0)) + 1, size);
     ui->tableWidget->clear();
@@ -92,9 +93,28 @@ void MainWindow::on_deleteButton_clicked()
 void MainWindow::deletePartition()
 {
     hdm->deletePartition(ui->tableWidget->row(ui->tableWidget->selectedItems().at(0)) + 1);
+    ui->tableWidget->clear();
+    setInfo();
 }
 
 void MainWindow::on_resizeButton_clicked()
 {
+    int number = ui->tableWidget->row(ui->tableWidget->selectedItems().at(0));
+    if (hdm->getPartition(number + 1).isEmptySpace) {
+        resizeWindow->writeIn(ui->tableWidget->selectedItems().at(4)->text().toInt(),
+                              hdm->getPartition(number + 1).free_space.QuadPart / pow(1024, 2),
+                              ui->tableWidget->selectedItems().at(1)->text().toInt());
+    } else {
+        resizeWindow->writeIn(ui->tableWidget->selectedItems().at(4)->text().toInt(),
+                              0,
+                              ui->tableWidget->selectedItems().at(1)->text().toInt());
+    }
     resizeWindow->exec();
+}
+
+void MainWindow::resizePartition(int new_size)
+{
+    hdm->changePartitionSize(ui->tableWidget->row(ui->tableWidget->selectedItems().at(0)) + 1, new_size);
+    ui->tableWidget->clear();
+    setInfo();
 }

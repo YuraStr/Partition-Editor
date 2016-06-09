@@ -8,90 +8,6 @@ HardDiskManager::HardDiskManager()
     fillInPartitionInformation();
 }
 
-BOOL HardDiskManager::processVolume(HANDLE hVol, char *Buf, int iBufSize)
-{
-    DWORD serialNumber;
-    TCHAR volumeName[MAX_PATH + 1] = { 0 };
-    wchar_t FileSysNameBuf[FILESYSNAMEBUFSIZE];
-    BOOL bFlag;
-    char buffer[20];
-    char guid[40];
-
-    GetVolumeInformation((LPCWSTR)Buf,
-                         volumeName,
-                         BUFSIZE,
-                         &serialNumber,
-                         0,
-                         NULL,
-                         (LPWSTR)FileSysNameBuf,
-                         FILESYSNAMEBUFSIZE);
-
-    wcstombs(buffer, (wchar_t*)Buf, 20);
-
-    int i, j;
-    for (i = 11, j = 0; i < 19; i++, j++) {
-        guid[j] = buffer[i];
-    }
-    guid[j] = '\0';
-
-    char partguid[8];
-    for (int i = 0; i < partitionCount; i++) {
-        itoa(partition[i].partitionInformation.Gpt.PartitionId.Data1, partguid, 16);
-        if (strlen(partguid) < 8) {
-            char temp[8];
-            char temp2[8];
-            for (int j = 0; j < 8 - strlen(partguid); j++)
-                temp[j] = '0';
-            strcpy(temp2, partguid);
-            strcpy(partguid, temp);
-            strcat(partguid, temp2);
-        }
-        if (!strcmp(guid, partguid)) {
-            wcstombs(partition[i].file_system, FileSysNameBuf, wcslen(FileSysNameBuf) + 1);
-            if (wcscmp(volumeName, L""))
-                wcstombs(partition[i].name, volumeName, wcslen(volumeName) + 1);
-            partition[i].serial_number = serialNumber;
-            break;
-        }
-    }
-
-    bFlag = FindNextVolume(hVol, (LPWSTR)Buf, iBufSize);
-
-    return (bFlag);
-}
-
-void HardDiskManager::setDiskSize()
-{
-    HANDLE hDisk;
-    WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
-    DWORD junk;
-
-    DISK_GEOMETRY *diskGeometry = (DISK_GEOMETRY*) malloc (sizeof(DISK_GEOMETRY));
-
-    hDisk = CreateFile(diskName,
-                       0,
-                       FILE_SHARE_READ,
-                       NULL,
-                       OPEN_EXISTING,
-                       0,
-                       NULL);
-
-    DeviceIoControl(hDisk,
-                    IOCTL_DISK_GET_DRIVE_GEOMETRY,
-                    NULL,
-                    0,
-                    diskGeometry,
-                    sizeof(*diskGeometry),
-                    &junk,
-                    (LPOVERLAPPED)NULL);
-
-    diskSize.QuadPart = diskGeometry->Cylinders.QuadPart * diskGeometry->TracksPerCylinder *
-                        diskGeometry->SectorsPerTrack    * diskGeometry->BytesPerSector;
-
-    free(diskGeometry);
-    CloseHandle(hDisk);
-}
-
 void HardDiskManager::fillInPartitionInformation()
 {
     DWORD junk;
@@ -99,26 +15,26 @@ void HardDiskManager::fillInPartitionInformation()
     pgd = (DRIVE_LAYOUT_INFORMATION_EX*)malloc(sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX));
     WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
     hDevice = CreateFile(diskName,
-        GENERIC_READ |
-        GENERIC_WRITE,
-        FILE_SHARE_READ |
-        FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        0,
-        NULL);
+                         GENERIC_READ |
+                         GENERIC_WRITE,
+                         FILE_SHARE_READ |
+                         FILE_SHARE_WRITE,
+                         NULL,
+                         OPEN_EXISTING,
+                         0,
+                         NULL);
     if (hDevice == INVALID_HANDLE_VALUE) {
         partitionCount = -1;
         return;
     } else {
         DeviceIoControl(hDevice,
-            IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
-            NULL,
-            0,
-            pgd,
-            sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
-            &junk,
-       (LPOVERLAPPED)NULL);
+                        IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
+                        NULL,
+                        0,
+                        pgd,
+                        sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
+                        &junk,
+                        (LPOVERLAPPED)NULL);
     }
 
     int number = -1;
@@ -166,26 +82,26 @@ void HardDiskManager::fillInPartitionInformation()
 
     CloseHandle(hDevice);
 
-    if (partition->partitionInformation.PartitionStyle == PARTITION_STYLE_GPT) {
-        char buf[BUFSIZE];
-        HANDLE hVol;
-        BOOL bFlag;
+    char buf[BUFSIZE];
+    HANDLE hVol;
+    BOOL bFlag;
 
-        hVol = FindFirstVolume((LPWSTR)buf, BUFSIZE);
+    hVol = FindFirstVolume((LPWSTR)buf, BUFSIZE);
 
-        if(hVol == INVALID_HANDLE_VALUE) {
-            printf("No volumes found!\n");
-            return;
-        }
+    if(hVol == INVALID_HANDLE_VALUE) {
+        printf("No volumes found!\n");
+        return;
+    }
+    bFlag = processVolume(hVol, buf, BUFSIZE);
+    while(bFlag) {
         bFlag = processVolume(hVol, buf, BUFSIZE);
-        while(bFlag) {
-            bFlag = processVolume(hVol, buf, BUFSIZE);
-        }
+    }
 
-        bFlag = FindVolumeClose(hVol);
-    } else {
-        for (int i = 0; i < partitionCount; i++) {
-            switch (partition[i].partitionInformation.Mbr.PartitionType) {
+    bFlag = FindVolumeClose(hVol);
+
+    if (pgd->PartitionStyle == PARTITION_STYLE_MBR) {
+    for (int i = 0; i < partitionCount; i++) {
+        switch (partition[i].partitionInformation.Mbr.PartitionType) {
             case 0x07:
                 strcpy(partition[i].file_system, "NTFS");
                 break;
@@ -201,27 +117,140 @@ void HardDiskManager::fillInPartitionInformation()
             default:
                 break;
             }
+        }
+    }
+}
 
+BOOL HardDiskManager::processVolume(HANDLE hVol, char *Buf, int iBufSize)
+{
+    static int i;
+    DWORD serialNumber;
+    TCHAR volumeName[MAX_PATH + 1] = { 0 };
+    wchar_t FileSysNameBuf[FILESYSNAMEBUFSIZE];
+    BOOL bFlag;
+    char buffer[20];
+    char guid[40];
+
+    ULARGE_INTEGER FreeBytesAvailable;
+    ULARGE_INTEGER TotalNumberOfBytes;
+    ULARGE_INTEGER TotalNumberOfFreeBytes;
+
+    GetVolumeInformation((LPCWSTR)Buf,
+                         volumeName,
+                         BUFSIZE,
+                         &serialNumber,
+                         0,
+                         NULL,
+                         (LPWSTR)FileSysNameBuf,
+                         FILESYSNAMEBUFSIZE);
+
+    wcstombs(buffer, (wchar_t*)Buf, 20);
+
+    if (pgd->PartitionStyle == PARTITION_STYLE_MBR) {GetDiskFreeSpaceEx((LPCWSTR)Buf,
+                       &FreeBytesAvailable,
+                       &TotalNumberOfBytes,
+                       &TotalNumberOfFreeBytes);
+
+    partition[i].free_space = TotalNumberOfFreeBytes;
+    if (partition[i].isEmptySpace == true) {
+        partition[i].free_space.QuadPart = partition[i].partitionInformation.PartitionLength.QuadPart;
+    }
+    i++;
+    if (i == partitionCount) i = 0;
+    } else {
+        int i, j;
+        for (i = 11, j = 0; i < 19; i++, j++) {
+            guid[j] = buffer[i];
+        }
+        guid[j] = '\0';
+
+        for (int i = 0; i < partitionCount; i++) {
+            long partguid;
+            partguid = strtol(guid, '\0', 16);
+            if (partguid != INT_MAX) {
+                if (partition[i].partitionInformation.Gpt.PartitionId.Data1 == partguid) {
+                    wcstombs(partition[i].file_system, FileSysNameBuf, wcslen(FileSysNameBuf) + 1);
+                    if (wcscmp(volumeName, L"")) {
+                        wcstombs(partition[i].name, volumeName, wcslen(volumeName) + 1);
+                    }
+                    GetDiskFreeSpaceEx(
+                                    (LPCWSTR)Buf,
+                                    &FreeBytesAvailable,
+                                    &TotalNumberOfBytes,
+                                    &TotalNumberOfFreeBytes
+                                );
+                    partition[i].free_space = TotalNumberOfFreeBytes;
+                    break;
+                }
+            } else {
+                char partguid[10];
+                itoa(partition[i].partitionInformation.Gpt.PartitionId.Data1, partguid, 16);
+                if (strlen(partguid) < 8) {
+                   char temp[8];
+                   char temp2[8];
+                   for (uint j = 0; j < 8 - strlen(partguid); j++)
+                      temp[j] = '0';
+                   strcpy(temp2, partguid);
+                   strcpy(partguid, temp);
+                   strcat(partguid, temp2);
+                }
+                if (!strcmp(guid, partguid)) {
+                    wcstombs(partition[i].file_system, FileSysNameBuf, wcslen(FileSysNameBuf) + 1);
+                    if (wcscmp(volumeName, L""))
+                        wcstombs(partition[i].name, volumeName, wcslen(volumeName) + 1);
+                    GetDiskFreeSpaceEx(
+                                    (LPCWSTR)Buf,
+                                    &FreeBytesAvailable,
+                                    &TotalNumberOfBytes,
+                                    &TotalNumberOfFreeBytes
+                                );
+                    partition[i].free_space = TotalNumberOfFreeBytes;
+                    break;
+                }
+            }
         }
     }
 
-    getFreeSpaces();
+    bFlag = FindNextVolume(hVol, (LPWSTR)Buf, iBufSize);
+
+    return (bFlag);
+}
+
+void HardDiskManager::setDiskSize()
+{
+    HANDLE hDisk;
+    WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
+    DWORD junk;
+
+    DISK_GEOMETRY *diskGeometry = (DISK_GEOMETRY*) malloc (sizeof(DISK_GEOMETRY));
+
+    hDisk = CreateFile(diskName,
+                       0,
+                       FILE_SHARE_READ,
+                       NULL,
+                       OPEN_EXISTING,
+                       0,
+                       NULL);
+
+    DeviceIoControl(hDisk,
+                    IOCTL_DISK_GET_DRIVE_GEOMETRY,
+                    NULL,
+                    0,
+                    diskGeometry,
+                    sizeof(*diskGeometry),
+                    &junk,
+                    (LPOVERLAPPED)NULL);
+
+    diskSize.QuadPart = diskGeometry->Cylinders.QuadPart * diskGeometry->TracksPerCylinder *
+                        diskGeometry->SectorsPerTrack    * diskGeometry->BytesPerSector;
+
+    free(diskGeometry);
+    CloseHandle(hDisk);
 }
 
 void HardDiskManager::createNewPartition(int number, int newSize)
 {
     int newIndex = partition[number - 1].index;
-
-    QMessageBox msg;
-    msg.setText(QString::number(newIndex));
-    msg.exec();
-
-    if (newSize > partition[number - 1].partitionInformation.PartitionLength.QuadPart) {
-        QMessageBox msg;
-        msg.setText("Error: new size too big");
-        msg.exec();
-        return;
-    }
 
     pgd->PartitionEntry[newIndex].PartitionLength.QuadPart = newSize * pow(1024, 2);
     pgd->PartitionEntry[newIndex].StartingOffset = partition[number - 1].partitionInformation.StartingOffset;
@@ -276,6 +305,8 @@ void HardDiskManager::createNewPartition(int number, int newSize)
 
     CloseHandle(hDevice);
 
+    ++partitionCount;
+
     fillInPartitionInformation();
 }
 
@@ -312,7 +343,7 @@ void HardDiskManager::deletePartition(int number)
 {
     if (partition[number - 1].isEmptySpace) {
         QMessageBox msg;
-        msg.setText("Error: this partitiion if empty");
+        msg.setText("Error: this partitiion is empty");
         msg.exec();
         return;
     }
@@ -338,7 +369,7 @@ void HardDiskManager::deletePartition(int number)
         wcscpy(pgd->PartitionEntry[newIndex].Gpt.Name, L"");
     } else {
         pgd->PartitionEntry[newIndex].Mbr.BootIndicator = FALSE;
-        pgd->PartitionEntry[newIndex].Mbr.PartitionType = PARTITION_STYLE_RAW;
+        pgd->PartitionEntry[newIndex].Mbr.PartitionType = 0x00;
         pgd->PartitionEntry[newIndex].Mbr.HiddenSectors = 0;
         pgd->PartitionEntry[newIndex].Mbr.RecognizedPartition = FALSE;
     }
@@ -355,14 +386,33 @@ void HardDiskManager::deletePartition(int number)
                          OPEN_EXISTING,
                          0,
                          NULL);
-    DeviceIoControl(hDevice,
-                    IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
+    if (!DeviceIoControl(hDevice,
+                         IOCTL_DISK_SET_DRIVE_LAYOUT_EX,
+                         pgd,
+                         sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
+                         NULL,
+                         0,
+                         &junk,
+                         (LPOVERLAPPED)NULL)) {
+        int err = GetLastError();
+        QMessageBox msg;
+        msg.setText("Delete error " + QString::number(err));
+        msg.exec();
+    }
+
+    /*if (!DeviceIoControl(hDevice,
+                    IOCTL_DISK_UPDATE_PROPERTIES,
                     NULL,
                     0,
-                    pgd,
-                    sizeof(DRIVE_LAYOUT_INFORMATION_EX) + 16 * sizeof(PARTITION_INFORMATION_EX),
+                    NULL,
+                    0,
                     &junk,
-                    (LPOVERLAPPED)NULL);
+                    (LPOVERLAPPED)NULL)) {
+        int err = GetLastError();
+        QMessageBox msg;
+        msg.setText("Update error " + QString::number(err));
+        msg.exec();
+    }*/
 
     fillInPartitionInformation();
 }
@@ -371,80 +421,45 @@ void HardDiskManager::changePartitionSize(int number, int size)
 {
     DISK_GROW_PARTITION grow;
 
-    grow.PartitionNumber = partition[number - 1].index;
-    grow.BytesToGrow.QuadPart = size * pow(1024, 2);
+    grow.BytesToGrow.QuadPart = size * pow(1024, 2) - partition[number-1].partitionInformation.PartitionLength.QuadPart;
+    grow.PartitionNumber = partition[number].index;
 
     DWORD junk;
     HANDLE hDevice;
     WCHAR diskName[30] = L"\\\\.\\PhysicalDrive0";
 
     hDevice = CreateFile(diskName,
-                         GENERIC_READ |
-                         GENERIC_WRITE,
+                         GENERIC_READ | GENERIC_WRITE,
                          FILE_SHARE_READ |
                          FILE_SHARE_WRITE,
                          NULL,
                          OPEN_EXISTING,
-                         0,
+                         FILE_READ_ATTRIBUTES,
                          NULL);
+    if (hDevice == INVALID_HANDLE_VALUE) {
+        int err = GetLastError();
+        QMessageBox msg;
+        msg.setText("DeviceIoControl error " + QString::number(err));
+        msg.exec();
+        return;
+    }
 
-    DeviceIoControl(hDevice,
-                    IOCTL_DISK_GROW_PARTITION,
-                    NULL,
-                    0,
-                    &grow,
-                    sizeof(grow),
-                    &junk,
-                    (LPOVERLAPPED)NULL);
+    if (!DeviceIoControl(hDevice,
+                         IOCTL_DISK_GROW_PARTITION,
+                         &grow,
+                         sizeof(grow),
+                         NULL,
+                         0,
+                         &junk,
+                         (LPOVERLAPPED)NULL)) {
+        int err = GetLastError();
+        QMessageBox msg2;
+        msg2.setText("DeviceIoControl error " + QString::number(err));
+        msg2.exec();
+        return;
+    }
 
     fillInPartitionInformation();
-}
-
-void HardDiskManager::getFreeSpaces()
-{
-    DWORD serialNumber;
-
-    ULARGE_INTEGER FreeBytesAvailable;
-    ULARGE_INTEGER TotalNumberOfBytes;
-    ULARGE_INTEGER TotalNumberOfFreeBytes;
-
-    int n;
-    char dd[4];
-    DWORD dr = GetLogicalDrives();
-
-    for( int i = 0; i < 26; i++ )
-    {
-        n = ((dr>>i)&0x00000001);
-        if( n == 1 ) {
-            dd[0] =  char(65+i); dd[1] = ':'; dd[2] = '\\'; dd[3] = 0;
-
-            wchar_t temp[20];
-            LPCWSTR str;
-            mbstowcs(temp, dd, strlen(dd) + 1);
-            str = temp;
-
-            GetDiskFreeSpaceEx(
-                str,
-                &FreeBytesAvailable,
-                &TotalNumberOfBytes,
-                &TotalNumberOfFreeBytes
-            );
-
-            GetVolumeInformation(str,
-                                 NULL,
-                                 0,
-                                 &serialNumber,
-                                 0,
-                                 NULL,
-                                 NULL,
-                                 0);
-            for (int j = 0; j < partitionCount; j++) {
-                if (partition[j].serial_number == serialNumber && partition[j].isEmptySpace == false) {
-                    partition[j].free_space = TotalNumberOfFreeBytes;
-                }
-            }
-        }
-    }
 }
 
 int HardDiskManager::getPartitionCount()

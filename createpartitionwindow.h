@@ -1,32 +1,34 @@
-#ifndef CREATEPARTITIONWINDOW_H
-#define CREATEPARTITIONWINDOW_H
+#ifndef CreatePartitionWindowWINDOW_H
+#define CreatePartitionWindowWINDOW_H
 
 #include <QDialog>
 
 namespace Ui {
-class CreatePartition;
+class CreatePartitionWindow;
 }
 
-class CreatePartition : public QDialog
+class CreatePartitionWindow : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit CreatePartition(QWidget *parent = 0);
+    explicit CreatePartitionWindow(QWidget *parent = 0);
     void writeInWindow(int free_space);
-    ~CreatePartition();
+    ~CreatePartitionWindow();
 
 private slots:
     void on_cancelButton_clicked();
     void on_okButton_clicked();
 
+    void on_sizeLineEdit_textChanged(const QString &arg1);
+
 signals:
-    okButtonClicked(int size, QString name);
+    okButtonClicked(int size);
 
 private:
-    Ui::CreatePartition *ui;
+    Ui::CreatePartitionWindow *ui;
 
     int free_space;
 };
 
-#endif // CREATEPARTITIONWINDOW_H
+#endif // CreatePartitionWindowWINDOW_H

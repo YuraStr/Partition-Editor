@@ -6,6 +6,8 @@ DeletePartitionWindow::DeletePartitionWindow(QWidget *parent) :
     ui(new Ui::DeletePartitionWindow)
 {
     ui->setupUi(this);
+
+    setWindowTitle("Delete partition");
 }
 
 DeletePartitionWindow::~DeletePartitionWindow()
